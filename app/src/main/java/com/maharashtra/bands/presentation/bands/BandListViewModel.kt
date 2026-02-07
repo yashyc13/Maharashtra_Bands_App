@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.ListenerRegistration
 import com.maharashtra.bands.data.model.Band
 import com.maharashtra.bands.data.repository.FirestoreRepository
 import com.maharashtra.bands.data.repository.Pagination
@@ -27,6 +28,11 @@ class BandListViewModel(
     private var lastDocument: DocumentSnapshot? = null
     private var isLastPage = false
     private var isRequestInFlight = false
+    private var listenerRegistration: ListenerRegistration? = null
+
+    private var queryText: String = ""
+    private var selectedCity: String = ""
+    private var selectedType: String = ""
 
     private val pageSize = 20L
 
@@ -35,10 +41,13 @@ class BandListViewModel(
         _bands.value = emptyList()
         lastDocument = null
         isLastPage = false
+        listenerRegistration?.remove()
+        listenerRegistration = null
         fetchNextPage()
     }
 
     fun fetchNextPage() {
+        if (hasActiveFilters()) return
         if (isRequestInFlight || isLastPage) return
         isRequestInFlight = true
         _isLoading.value = true
@@ -65,5 +74,50 @@ class BandListViewModel(
                 isRequestInFlight = false
             }
         )
+    }
+
+    fun updateFilters(queryText: String, city: String, type: String) {
+        this.queryText = queryText
+        selectedCity = city
+        selectedType = type
+
+        listenerRegistration?.remove()
+        listenerRegistration = null
+        isLastPage = false
+        lastDocument = null
+
+        if (!hasActiveFilters()) {
+            loadInitial()
+            return
+        }
+
+        _isLoading.value = true
+        _errorMessage.value = null
+
+        listenerRegistration = repository.observeApprovedBands(
+            queryText = queryText,
+            city = city,
+            type = type,
+            onSuccess = { bands ->
+                _bands.value = bands
+                _isEmpty.value = bands.isEmpty()
+                _isLoading.value = false
+            },
+            onFailure = { exception ->
+                _errorMessage.value = exception.message
+                _isLoading.value = false
+                _isEmpty.value = _bands.value.isNullOrEmpty()
+            }
+        )
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        listenerRegistration?.remove()
+        listenerRegistration = null
+    }
+
+    private fun hasActiveFilters(): Boolean {
+        return queryText.isNotBlank() || selectedCity.isNotBlank() || selectedType.isNotBlank()
     }
 }

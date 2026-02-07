@@ -2,6 +2,7 @@ package com.maharashtra.bands.data.repository
 
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.maharashtra.bands.data.model.Band
 import com.maharashtra.bands.data.model.Submission
@@ -107,6 +108,53 @@ class FirestoreRepository(
             .addOnFailureListener { exception ->
                 onFailure(exception)
             }
+    }
+
+    fun observeApprovedBands(
+        queryText: String,
+        city: String,
+        type: String,
+        onSuccess: (List<Band>) -> Unit,
+        onFailure: (Exception) -> Unit
+    ): ListenerRegistration {
+        /**
+         * Example indexed queries:
+         *  - Approved + name prefix:
+         *      whereEqualTo("isApproved", true).orderBy("name").startAt("Mu").endAt("Mu\\uf8ff")
+         *  - Approved + city + type:
+         *      whereEqualTo("isApproved", true).whereEqualTo("city", "Pune").whereEqualTo("type", "Brass")
+         *          .orderBy("name")
+         */
+        var query = firestore.collection(COLLECTION_BANDS)
+            .whereEqualTo(FIELD_IS_APPROVED, true)
+
+        if (city.isNotBlank()) {
+            query = query.whereEqualTo(FIELD_CITY, city)
+        }
+
+        if (type.isNotBlank()) {
+            query = query.whereEqualTo(FIELD_TYPE, type)
+        }
+
+        // Firestore index note:
+        // Combining whereEqualTo filters with orderBy on name requires a composite index.
+        query = query.orderBy(FIELD_NAME)
+
+        if (queryText.isNotBlank()) {
+            query = query.startAt(queryText).endAt("$queryText\uf8ff")
+        }
+
+        return query.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                onFailure(error)
+                return@addSnapshotListener
+            }
+            val documents = snapshot?.documents.orEmpty()
+            val bands = documents.mapNotNull { document ->
+                document.toObject(Band::class.java)?.copy(id = document.id)
+            }
+            onSuccess(bands)
+        }
     }
 
     companion object {
