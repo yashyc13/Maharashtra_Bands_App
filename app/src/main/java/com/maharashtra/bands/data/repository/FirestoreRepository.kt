@@ -135,6 +135,94 @@ class FirestoreRepository(
             }
     }
 
+    fun observePendingSubmissions(
+        onSuccess: (List<Submission>) -> Unit,
+        onFailure: (Exception) -> Unit
+    ): ListenerRegistration {
+        return firestore.collection(COLLECTION_SUBMISSIONS)
+            .whereEqualTo(FIELD_SUBMISSION_STATUS, STATUS_PENDING)
+            .orderBy(FIELD_CREATED_AT, Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onFailure(error)
+                    return@addSnapshotListener
+                }
+                val submissions = snapshot?.documents.orEmpty().mapNotNull { document ->
+                    document.toObject(Submission::class.java)?.copy(id = document.id)
+                }
+                onSuccess(submissions)
+            }
+    }
+
+    fun approveSubmission(
+        submission: Submission,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        val band = Band(
+            name = submission.bandName,
+            city = submission.city,
+            type = submission.type,
+            imageUrl = submission.imageUrl,
+            isApproved = true,
+            createdAt = submission.createdAt
+        )
+
+        val submissionRef = firestore.collection(COLLECTION_SUBMISSIONS).document(submission.id)
+        val bandRef = firestore.collection(COLLECTION_BANDS).document()
+
+        firestore.runBatch { batch ->
+            batch.set(bandRef, band)
+            batch.update(submissionRef, FIELD_SUBMISSION_STATUS, STATUS_APPROVED)
+        }.addOnSuccessListener {
+            onSuccess()
+        }.addOnFailureListener { exception ->
+            onFailure(exception)
+        }
+    }
+
+    fun observeBands(
+        onSuccess: (List<Band>) -> Unit,
+        onFailure: (Exception) -> Unit
+    ): ListenerRegistration {
+        return firestore.collection(COLLECTION_BANDS)
+            .orderBy(FIELD_NAME, Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onFailure(error)
+                    return@addSnapshotListener
+                }
+                val bands = snapshot?.documents.orEmpty().mapNotNull { document ->
+                    document.toObject(Band::class.java)?.copy(id = document.id)
+                }
+                onSuccess(bands)
+            }
+    }
+
+    fun updateBand(
+        band: Band,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        firestore.collection(COLLECTION_BANDS)
+            .document(band.id)
+            .set(band)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { exception -> onFailure(exception) }
+    }
+
+    fun deleteBand(
+        bandId: String,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        firestore.collection(COLLECTION_BANDS)
+            .document(bandId)
+            .delete()
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { exception -> onFailure(exception) }
+    }
+
     fun observeApprovedBands(
         queryText: String,
         city: String,
@@ -189,6 +277,10 @@ class FirestoreRepository(
         private const val FIELD_CITY = "city"
         private const val FIELD_TYPE = "type"
         private const val FIELD_IS_APPROVED = "isApproved"
+        private const val FIELD_SUBMISSION_STATUS = "status"
+        private const val FIELD_CREATED_AT = "createdAt"
+        private const val STATUS_PENDING = "pending"
+        private const val STATUS_APPROVED = "approved"
     }
 
     private fun submissionsImageRef(): StorageReference {

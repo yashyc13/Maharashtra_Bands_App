@@ -16,4 +16,9 @@
     <string name="submit_band_optional_image">Optional image</string>
     <string name="submit_band_upload_image">Upload image</string>
     <string name="submit_band_submit">Submit</string>
+    <string name="admin_login_success">Logged in as admin.</string>
+    <string name="admin_edit_error_name">Please enter a name.</string>
+    <string name="admin_edit_error_city">Please enter a city.</string>
+    <string name="admin_edit_error_type">Please enter a type.</string>
+    <string name="admin_edit_success">Band updated.</string>
 </resources>
