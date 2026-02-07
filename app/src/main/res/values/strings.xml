@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="band_profile_no_phone">Phone number unavailable.</string>
+    <string name="band_profile_whatsapp_missing">WhatsApp not installed.</string>
+</resources>
