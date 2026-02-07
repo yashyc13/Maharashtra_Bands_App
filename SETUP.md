@@ -153,3 +153,88 @@ Destinations:
     app:navGraph="@navigation/nav_graph"
     app:defaultNavHost="true" />
 ```
+
+## 6. Firebase setup (Firestore, Storage, Auth)
+
+### 6.1 Firebase console setup steps
+
+1. **Create project** in Firebase Console and add an Android app.
+2. **Register app** with the package name (e.g., `com.maharashtra.bands`) and download `google-services.json`.
+3. **Add `google-services.json`** to the app module (`app/`).
+4. **Enable Authentication**:
+   - Firebase Console → Authentication → Sign-in method.
+   - Enable **Email/Password**.
+5. **Enable Firestore**:
+   - Firebase Console → Firestore Database → Create database.
+   - Start in **production mode** (recommended) and add rules later.
+6. **Enable Storage**:
+   - Firebase Console → Storage → Get started.
+   - Configure rules for admin-only access later.
+
+### 6.2 Required Gradle dependencies
+
+**Project-level:**
+```
+classpath "com.google.gms:google-services:4.4.2"
+```
+
+**Module-level `app/build.gradle`:**
+```
+// Firebase BoM
+implementation platform("com.google.firebase:firebase-bom:33.2.0")
+
+// Firestore
+implementation "com.google.firebase:firebase-firestore-ktx"
+
+// Storage
+implementation "com.google.firebase:firebase-storage-ktx"
+
+// Authentication
+implementation "com.google.firebase:firebase-auth-ktx"
+```
+
+Apply plugin in app module:
+```
+apply plugin: "com.google.gms.google-services"
+```
+
+### 6.3 Firestore initialization in Application class
+
+```
+class MaharashtraBandsApp : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        FirebaseApp.initializeApp(this)
+        FirebaseFirestore.getInstance().firestoreSettings =
+            FirebaseFirestoreSettings.Builder()
+                .setPersistenceEnabled(true)
+                .build()
+    }
+}
+```
+
+Ensure the Application class is registered:
+```
+<application
+    android:name=".MaharashtraBandsApp"
+    ... >
+</application>
+```
+
+### 6.4 Firebase Storage configuration
+
+Initialization is automatic once `google-services.json` is present. Access the singleton when needed:
+```
+val storage = FirebaseStorage.getInstance()
+val storageRef = storage.reference.child("bands")
+```
+
+### 6.5 Enable Firestore offline caching
+
+Offline persistence is enabled via `FirestoreSettings`:
+```
+FirebaseFirestore.getInstance().firestoreSettings =
+    FirebaseFirestoreSettings.Builder()
+        .setPersistenceEnabled(true)
+        .build()
+```
