@@ -4,12 +4,15 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageReference
 import com.maharashtra.bands.data.model.Band
 import com.maharashtra.bands.data.model.Submission
 
 
 class FirestoreRepository(
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
+    private val storage: FirebaseStorage = FirebaseStorage.getInstance()
 ) {
     fun getApprovedBands(
         pagination: Pagination,
@@ -110,6 +113,28 @@ class FirestoreRepository(
             }
     }
 
+    fun uploadSubmissionImage(
+        fileUri: android.net.Uri,
+        onSuccess: (String) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        val fileName = "submission_${System.currentTimeMillis()}.jpg"
+        val reference = submissionsImageRef().child(fileName)
+        reference.putFile(fileUri)
+            .continueWithTask { task ->
+                if (!task.isSuccessful) {
+                    task.exception?.let { throw it }
+                }
+                reference.downloadUrl
+            }
+            .addOnSuccessListener { uri ->
+                onSuccess(uri.toString())
+            }
+            .addOnFailureListener { exception ->
+                onFailure(exception)
+            }
+    }
+
     fun observeApprovedBands(
         queryText: String,
         city: String,
@@ -164,6 +189,10 @@ class FirestoreRepository(
         private const val FIELD_CITY = "city"
         private const val FIELD_TYPE = "type"
         private const val FIELD_IS_APPROVED = "isApproved"
+    }
+
+    private fun submissionsImageRef(): StorageReference {
+        return storage.reference.child("submissions")
     }
 }
 

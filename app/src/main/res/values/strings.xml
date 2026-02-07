@@ -2,4 +2,18 @@
 <resources>
     <string name="band_profile_no_phone">Phone number unavailable.</string>
     <string name="band_profile_whatsapp_missing">WhatsApp not installed.</string>
+    <string name="submit_band_error_name">Please enter a band name.</string>
+    <string name="submit_band_error_city">Please enter a city.</string>
+    <string name="submit_band_error_type">Please enter a band type.</string>
+    <string name="submit_band_error_phone">Please enter a phone number.</string>
+    <string name="submit_band_success">Submission received. We will review it shortly.</string>
+    <string name="submit_band_image_none">No image selected</string>
+    <string name="submit_band_image_selected">Image selected</string>
+    <string name="submit_band_hint_name">Band name</string>
+    <string name="submit_band_hint_city">City</string>
+    <string name="submit_band_hint_type">Band type</string>
+    <string name="submit_band_hint_phone">Phone number</string>
+    <string name="submit_band_optional_image">Optional image</string>
+    <string name="submit_band_upload_image">Upload image</string>
+    <string name="submit_band_submit">Submit</string>
 </resources>
